@@ -1,0 +1,4 @@
+# 无第三方依赖，纯标准库（tkinter / urllib / json / os / re）
+# 打包用 PyInstaller:
+#   pip install pyinstaller
+#   pyinstaller -F -w --name KariHelper app.py
