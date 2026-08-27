@@ -3,7 +3,11 @@ import json
 import os
 import sys
 
-APP_DIR = os.path.dirname(os.path.abspath(__file__))
+if getattr(sys, "frozen", False):
+    # PyInstaller 单文件版解压到临时目录运行；配置和检索表应保存在 EXE 旁边。
+    APP_DIR = os.path.dirname(os.path.abspath(sys.executable))
+else:
+    APP_DIR = os.path.dirname(os.path.abspath(__file__))
 DATA_DIR = os.path.join(APP_DIR, "data")
 CONFIG_FILE = os.path.join(APP_DIR, "config.json")
 INDEX_FILE = os.path.join(DATA_DIR, "models_index.json")
@@ -16,9 +20,13 @@ DEFAULT_PROMPT = (
 )
 
 DEFAULT_CONFIG = {
+    "ai_provider": "openai_compatible",
     "api_base": "https://api.deepseek.com/v1",
     "api_key": "",
     "model": "deepseek-chat",
+    "codex_cli_path": "",
+    "openai_models": [],
+    "codex_models": [],
     "prompt": DEFAULT_PROMPT,
     "blender_path": "",
     "model_lib": r"D:\\模型",

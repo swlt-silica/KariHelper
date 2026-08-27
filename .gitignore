@@ -1,0 +1,12 @@
+__pycache__/
+*.py[cod]
+
+# 本机配置、密钥与运行数据
+config.json
+data/
+
+# 构建和发行产物
+build/
+dist/
+release/
+*.spec

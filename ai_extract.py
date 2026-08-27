@@ -1,35 +1,41 @@
-"""AI 作者提取：调用 OpenAI 兼容 API，让模型从 readme 或 PMX 注释中找出作者。"""
+"""AI 作者提取：支持 OpenAI 兼容 API 与本机 Codex CLI。"""
 import json
-import os
-import urllib.request
 
-from config import load_config
+from ai_clients import PROVIDER_CODEX, call_openai_chat, run_codex_prompt
+from config import APP_DIR, load_config
 from util import read_readme_text
 from pmx_reader import extract_pmx_info
 
 
+AUTHOR_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "name": {"type": "string"},
+        "author": {"type": "string"},
+        "all_authors": {"type": "array", "items": {"type": "string"}},
+        "rules": {"type": "string"},
+        "category": {"type": "string"},
+    },
+    "required": ["name", "author", "all_authors", "rules", "category"],
+    "additionalProperties": False,
+}
+
+
 def _call_chat(cfg, user_content):
-    url = cfg["api_base"].rstrip("/") + "/chat/completions"
-    payload = {
-        "model": cfg.get("model", "deepseek-chat"),
-        "messages": [
-            {"role": "system", "content": cfg.get("prompt", "")},
-            {"role": "user", "content": user_content},
-        ],
-        "temperature": 0,
-        "max_tokens": 1000,
-    }
-    req = urllib.request.Request(
-        url,
-        data=json.dumps(payload).encode("utf-8"),
-        headers={
-            "Content-Type": "application/json",
-            "Authorization": "Bearer " + cfg.get("api_key", ""),
-        },
-    )
-    with urllib.request.urlopen(req, timeout=120) as resp:
-        body = json.loads(resp.read().decode("utf-8"))
-    return body["choices"][0]["message"]["content"]
+    if cfg.get("ai_provider") == PROVIDER_CODEX:
+        prompt = (
+            f"{cfg.get('prompt', '')}\n\n"
+            "不要读取文件、不要调用工具，只根据下面提供的文本回答。\n\n"
+            f"{user_content}"
+        )
+        return run_codex_prompt(
+            cfg.get("codex_cli_path", ""),
+            cfg.get("model", ""),
+            prompt,
+            output_schema=AUTHOR_SCHEMA,
+            cwd=APP_DIR,
+        )
+    return call_openai_chat(cfg, user_content)
 
 
 def _extract_json(text):
@@ -57,8 +63,10 @@ def _entry_from_data(data, model_name, source):
 def extract_author(model_name, content, source):
     """给模型名 + 任意文本内容（readme 或 PMX 注释），AI 提取作者。"""
     cfg = load_config()
-    if not cfg.get("api_key"):
-        raise RuntimeError("未配置 API Key，请在设置中填写")
+    if not cfg.get("model"):
+        raise RuntimeError("未配置模型，请在设置中填写或获取模型")
+    if cfg.get("ai_provider") != PROVIDER_CODEX and not cfg.get("api_base"):
+        raise RuntimeError("未配置 API Base，请在设置中填写")
     if not content.strip():
         raise RuntimeError("无可用内容")
     user_content = f"模型名（参考）: {model_name}\n内容来源: {source}\n--- 内容 ---\n{content[:6000]}"

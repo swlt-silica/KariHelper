@@ -3,7 +3,7 @@ import tkinter as tk
 from tkinter import ttk
 import webbrowser
 
-VERSION = "v1.0"
+VERSION = "v1.1.0"
 GITHUB_URL = "https://github.com/swlt-silica/KariHelper"
 
 
